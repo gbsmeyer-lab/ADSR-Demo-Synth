@@ -62,8 +62,8 @@ const Oscilloscope: React.FC<Props> = ({ analyser, color = "#22d3ee" }) => {
   }, [analyser, color]);
 
   return (
-    <div className="w-full h-full min-h-[200px] bg-slate-950 rounded-lg border border-slate-800 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] relative">
-      <div className="absolute top-2 right-2 text-[10px] text-slate-600 font-mono uppercase">Output Signal</div>
+    <div className="w-full h-full min-h-[140px] bg-slate-950 rounded-lg border border-slate-800 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] relative">
+      <div className="absolute top-1 right-2 text-[10px] text-slate-600 font-mono uppercase">Output Signal</div>
       <canvas 
         ref={canvasRef} 
         width={800} 

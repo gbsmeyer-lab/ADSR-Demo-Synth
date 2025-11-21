@@ -79,8 +79,6 @@ const EnvelopeGraph: React.FC<Props> = ({ adsr, gate }) => {
             y = attackY + (decayY - attackY) * progress;
         } else {
             // Sustain Phase (Holding)
-            // For visual clarity, we'll keep the dot at the "knee" of the sustain
-            // or we could slowly drift it along the sustain line if we wanted
             x = decayX; 
             y = decayY;
         }
@@ -90,7 +88,6 @@ const EnvelopeGraph: React.FC<Props> = ({ adsr, gate }) => {
         
         if (elapsed < release) {
             const progress = elapsed / Math.max(0.001, release);
-            // Visually jumping to the Release segment of the graph
             x = sustainX + (releaseX - sustainX) * progress;
             y = sustainY + (releaseY - sustainY) * progress;
         } else {
@@ -103,9 +100,6 @@ const EnvelopeGraph: React.FC<Props> = ({ adsr, gate }) => {
       dotRef.current.setAttribute('cx', x.toString());
       dotRef.current.setAttribute('cy', y.toString());
       
-      // Opacity handling: Fade out if idle for a long time? 
-      // Or just stay at 0,0.
-      // Let's keep it visible if gate is open or recently released
       const isAnimating = gate.state === 'open' || (gate.state === 'closed' && (now - gate.lastReleaseTime) / 1000 < release);
       dotRef.current.style.opacity = isAnimating ? '1' : '0';
 
@@ -122,8 +116,8 @@ const EnvelopeGraph: React.FC<Props> = ({ adsr, gate }) => {
   const fillColor = gate.state === 'open' ? "rgba(217, 70, 239, 0.2)" : "rgba(112, 26, 117, 0.1)";
 
   return (
-    <div className="bg-slate-900 rounded-lg border border-slate-700 p-4 shadow-inner relative overflow-hidden group h-full min-h-[200px]">
-        <div className="absolute top-2 right-4 text-xs text-slate-500 font-mono pointer-events-none select-none">
+    <div className="bg-slate-900 rounded-lg border border-slate-700 p-2 shadow-inner relative overflow-hidden group h-full min-h-[140px]">
+        <div className="absolute top-1 right-2 text-[10px] text-slate-500 font-mono pointer-events-none select-none">
             ADSR VISUALIZER
         </div>
       <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full h-full">

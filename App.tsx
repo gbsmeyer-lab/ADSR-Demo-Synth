@@ -71,11 +71,7 @@ const App: React.FC = () => {
     } else if (activeNotes.length === 0 && gate.state === 'open') {
         setGate(prev => ({ ...prev, state: 'closed', lastReleaseTime: Date.now() }));
     }
-    // Note: Retrigger logic could be added here if desired (e.g. if new note added, reset trigger time)
-    // For simple ADSR, usually gate stays open as long as at least one key is held.
-    // If we want to re-trigger animation on every new note even if gate is open:
     if (activeNotes.length > 0) {
-       // Optional: Uncomment to re-trigger attack animation on every new key press (legato retrigger)
        setGate(prev => ({ ...prev, state: 'open', lastTriggerTime: Date.now() }));
     }
   }, [activeNotes]);
@@ -110,38 +106,38 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className={`min-h-screen w-full flex flex-col items-center justify-center p-4 md:p-8 transition-colors duration-1000 ${isDisco ? 'bg-black' : 'bg-slate-950'}`}>
+    <div className={`min-h-screen w-full flex flex-col items-center justify-center p-2 transition-colors duration-1000 ${isDisco ? 'bg-black' : 'bg-slate-950'}`}>
       
       <DiscoOverlay active={isDisco} />
 
-      <main className="w-full max-w-6xl flex flex-col gap-6 relative z-10">
+      <main className="w-full max-w-[800px] flex flex-col gap-3 relative z-10">
         
-        {/* Header with prominent Disco Button */}
-        <header className="flex justify-between items-center border-b border-slate-800 pb-4">
+        {/* Header */}
+        <header className="flex justify-between items-center border-b border-slate-800 pb-2">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-cyan-400 select-none">
+            <h1 className="text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-cyan-400 select-none">
               ADSR Hüllkurve
             </h1>
-            <p className="text-slate-500 text-sm font-mono mt-1 select-none">
+            <p className="text-slate-500 text-xs font-mono mt-0.5 select-none">
               Am Beispiel eines Synthesizers
             </p>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
              <div className="hidden md:block text-right">
-                 <div className="text-xs text-slate-400 font-mono mb-1 select-none">MASTER OUTPUT</div>
-                 <div className={`text-xs font-bold select-none ${activeNotes.length > 0 ? "text-green-400 animate-pulse" : "text-slate-600"}`}>
-                    {activeNotes.length > 0 ? "SIGNAL ACTIVE" : "STANDBY"}
+                 <div className="text-[10px] text-slate-400 font-mono select-none">OUTPUT</div>
+                 <div className={`text-[10px] font-bold select-none ${activeNotes.length > 0 ? "text-green-400 animate-pulse" : "text-slate-600"}`}>
+                    {activeNotes.length > 0 ? "ACTIVE" : "STANDBY"}
                  </div>
              </div>
              
              <button 
                 onClick={() => setIsDisco(!isDisco)}
                 className={`
-                    px-5 py-2 rounded-full font-black text-sm uppercase tracking-widest transition-all duration-300 shadow-lg border-2 select-none
+                    px-3 py-1 rounded-full font-black text-xs uppercase tracking-widest transition-all duration-300 shadow-lg border select-none
                     ${isDisco 
-                        ? 'border-pink-500 bg-pink-600 text-white shadow-[0_0_30px_rgba(236,72,153,0.8)] scale-110 rotate-2' 
-                        : 'border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white hover:border-white hover:shadow-[0_0_15px_rgba(255,255,255,0.2)]'}
+                        ? 'border-pink-500 bg-pink-600 text-white shadow-[0_0_30px_rgba(236,72,153,0.8)] scale-105 rotate-2' 
+                        : 'border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white hover:border-white hover:shadow-[0_0_10px_rgba(255,255,255,0.1)]'}
                 `}
              >
                 {isDisco ? 'DISCO!' : 'Disco?'}
@@ -149,26 +145,26 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Top Section: Visuals - Increased height */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-auto lg:h-80">
-            {/* ADSR Graph (Magenta) */}
+        {/* Top Section: Visuals - Reduced height */}
+        <div className="grid grid-cols-2 gap-3 h-40">
+            {/* ADSR Graph */}
             <div className="flex flex-col h-full">
                 <EnvelopeGraph adsr={state.adsr} gate={gate} />
             </div>
 
-            {/* Oscilloscope (Expanded) */}
+            {/* Oscilloscope */}
             <div className="flex flex-col h-full">
                 <Oscilloscope analyser={analyser} color={isDisco ? "#ffff00" : "#22d3ee"} />
             </div>
         </div>
 
-        {/* Controls */}
-        <div className="bg-slate-950 rounded-2xl p-1 mt-2">
+        {/* Controls - Compact */}
+        <div className="bg-slate-950 rounded-xl p-1">
             <ControlPanel state={state} onChange={setState} />
         </div>
 
-        <footer className="text-center text-slate-700 text-xs font-mono select-none">
-            Use your computer keyboard to play the synthesizer.
+        <footer className="text-center text-slate-700 text-[10px] font-mono select-none">
+            Use your computer keyboard (a-l) to play.
         </footer>
       </main>
     </div>
