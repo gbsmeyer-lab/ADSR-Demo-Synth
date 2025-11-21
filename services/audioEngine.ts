@@ -6,6 +6,7 @@ interface ActiveVoice {
   filter: BiquadFilterNode;
   lfo?: OscillatorNode;
   lfoGain?: GainNode;
+  startTime: number; // Track when the note started
 }
 
 export class AudioEngine {
@@ -66,10 +67,11 @@ export class AudioEngine {
     
     // Attack
     vca.gain.linearRampToValueAtTime(1.0, t + adsr.attack);
+    
     // Decay to Sustain
-    // Using exponentialRamp can be tricky if value is 0, so we ensure minimal decay time
+    // Ensure minimal duration for math safety
     const decayDuration = Math.max(0.01, adsr.decay);
-    const sustainLevel = Math.max(0.0001, adsr.sustain); // Avoid 0 for exponential ramp
+    const sustainLevel = Math.max(0.0001, adsr.sustain); 
     vca.gain.exponentialRampToValueAtTime(sustainLevel, t + adsr.attack + decayDuration);
 
     // 4. LFO (Modulates Filter Cutoff)
@@ -101,7 +103,8 @@ export class AudioEngine {
       gain: vca,
       filter: biquadFilter,
       lfo: lfoOsc,
-      lfoGain
+      lfoGain,
+      startTime: t
     });
   }
 
@@ -111,33 +114,52 @@ export class AudioEngine {
 
     const t = this.ctx.currentTime;
     const { adsr } = state;
+    
+    // Calculate minimal lifecycle (Attack + Decay)
+    // To ensure the envelope is "run through completely", we wait for A+D to finish.
+    const minDuration = adsr.attack + adsr.decay;
+    const timeSinceStart = t - voice.startTime;
+    
+    // Determine effective release start time
+    // If key is released early, we defer the release until after Attack + Decay
+    const releaseStart = (timeSinceStart < minDuration) 
+      ? voice.startTime + minDuration 
+      : t;
 
-    // Cancel scheduled changes to ensure we start release from current value
-    voice.gain.gain.cancelScheduledValues(t);
-    
-    // Explicitly set current value to avoid pops
-    voice.gain.gain.setValueAtTime(voice.gain.gain.value, t);
-    
-    // Release
     const releaseDuration = Math.max(0.01, adsr.release);
-    voice.gain.gain.exponentialRampToValueAtTime(0.0001, t + releaseDuration);
 
-    // Stop oscillator after release
-    voice.osc.stop(t + releaseDuration + 0.1);
-    if (voice.lfo) {
-      voice.lfo.stop(t + releaseDuration + 0.1);
+    if (timeSinceStart >= minDuration) {
+        // Standard behavior: We are in Sustain phase (or later), so we release from current value
+        voice.gain.gain.cancelScheduledValues(t);
+        voice.gain.gain.setValueAtTime(voice.gain.gain.value, t);
+        voice.gain.gain.exponentialRampToValueAtTime(0.0001, t + releaseDuration);
+    } else {
+        // Early release: We let the already scheduled Attack & Decay play out.
+        // We just assume the volume will be at Sustain Level at `releaseStart` time.
+        // We schedule the release ramp starting from that future point.
+        // Note: No cancelScheduledValues here, to preserve the A/D curve!
+        
+        // Ensure sustain level is captured for the start of release ramp
+        const sustainLevel = Math.max(0.0001, adsr.sustain);
+        voice.gain.gain.setValueAtTime(sustainLevel, releaseStart);
+        voice.gain.gain.exponentialRampToValueAtTime(0.0001, releaseStart + releaseDuration);
     }
 
-    // Cleanup map after sound is done
+    // Stop oscillators
+    voice.osc.stop(releaseStart + releaseDuration + 0.1);
+    if (voice.lfo) {
+      voice.lfo.stop(releaseStart + releaseDuration + 0.1);
+    }
+
+    // Cleanup map
     setTimeout(() => {
-       // Only delete if it's still the same voice (simple check)
        if(this.activeVoices.get(note) === voice) {
          voice.osc.disconnect();
          voice.gain.disconnect();
          voice.filter.disconnect();
          this.activeVoices.delete(note);
        }
-    }, (releaseDuration + 0.2) * 1000);
+    }, (releaseStart - t + releaseDuration + 0.2) * 1000);
   }
 
   public setMasterVolume(val: number) {

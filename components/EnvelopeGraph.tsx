@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import { ADSRState } from '../types';
 
@@ -59,48 +58,76 @@ const EnvelopeGraph: React.FC<Props> = ({ adsr, gate }) => {
       if (!dotRef.current) return;
       
       const now = Date.now();
-      
+      const timeSinceTrigger = (now - gate.lastTriggerTime) / 1000;
+      const forcedDuration = attack + decay;
+
       let x = startX;
       let y = startY;
+      let isAnimating = false;
 
-      if (gate.state === 'open') {
-        const elapsed = (now - gate.lastTriggerTime) / 1000;
-        
-        if (elapsed < attack) {
-            // Attack Phase
-            const progress = elapsed / Math.max(0.001, attack);
-            x = startX + (attackX - startX) * progress;
-            y = startY + (attackY - startY) * progress;
-        } else if (elapsed < attack + decay) {
-            // Decay Phase
-            const decayElapsed = elapsed - attack;
-            const progress = decayElapsed / Math.max(0.001, decay);
-            x = attackX + (decayX - attackX) * progress;
-            y = attackY + (decayY - attackY) * progress;
+      // We consider the envelope "active" if:
+      // 1. The gate is open
+      // 2. We are still in the forced Attack/Decay phase (even if closed)
+      // 3. We are in the Release phase (after forced AD or regular release)
+
+      // Logic: 
+      // If time < A+D, we strictly follow the Attack/Decay curve regardless of gate.
+      // If time >= A+D:
+      //    If gate is Open: Sustain.
+      //    If gate is Closed: Release.
+
+      if (timeSinceTrigger < forcedDuration) {
+        // Forced Attack / Decay Phase
+        isAnimating = true;
+        if (timeSinceTrigger < attack) {
+             // Attack
+             const progress = timeSinceTrigger / Math.max(0.001, attack);
+             x = startX + (attackX - startX) * progress;
+             y = startY + (attackY - startY) * progress;
         } else {
-            // Sustain Phase (Holding)
-            x = decayX; 
-            y = decayY;
+             // Decay
+             const decayElapsed = timeSinceTrigger - attack;
+             const progress = decayElapsed / Math.max(0.001, decay);
+             x = attackX + (decayX - attackX) * progress;
+             y = attackY + (decayY - attackY) * progress;
         }
       } else {
-        // Release Phase
-        const elapsed = (now - gate.lastReleaseTime) / 1000;
-        
-        if (elapsed < release) {
-            const progress = elapsed / Math.max(0.001, release);
-            x = sustainX + (releaseX - sustainX) * progress;
-            y = sustainY + (releaseY - sustainY) * progress;
+        // Sustain or Release Phase
+        if (gate.state === 'open') {
+            // Sustain
+            isAnimating = true;
+            x = decayX;
+            y = decayY;
         } else {
-            // Ended
-            x = startX;
-            y = startY;
+            // Release Phase
+            // The release effectively starts either when the key was released OR after the forced A+D phase finishes.
+            // We need to calculate the "effective" release start time.
+            const effectiveReleaseStart = Math.max(gate.lastReleaseTime, gate.lastTriggerTime + (forcedDuration * 1000));
+            const releaseElapsed = (now - effectiveReleaseStart) / 1000;
+
+            if (releaseElapsed < 0) {
+                // Still waiting (shouldn't happen due to logic above, but safe fallback)
+                 x = decayX; 
+                 y = decayY;
+                 isAnimating = true;
+            } else if (releaseElapsed < release) {
+                // Releasing
+                const progress = releaseElapsed / Math.max(0.001, release);
+                x = sustainX + (releaseX - sustainX) * progress;
+                y = sustainY + (releaseY - sustainY) * progress;
+                isAnimating = true;
+            } else {
+                // Finished
+                x = startX;
+                y = startY;
+                isAnimating = false;
+            }
         }
       }
 
       dotRef.current.setAttribute('cx', x.toString());
       dotRef.current.setAttribute('cy', y.toString());
       
-      const isAnimating = gate.state === 'open' || (gate.state === 'closed' && (now - gate.lastReleaseTime) / 1000 < release);
       dotRef.current.style.opacity = isAnimating ? '1' : '0';
 
       animationFrameId = requestAnimationFrame(animate);
@@ -116,7 +143,7 @@ const EnvelopeGraph: React.FC<Props> = ({ adsr, gate }) => {
   const fillColor = gate.state === 'open' ? "rgba(217, 70, 239, 0.2)" : "rgba(112, 26, 117, 0.1)";
 
   return (
-    <div className="bg-slate-900 rounded-lg border border-slate-700 p-2 shadow-inner relative overflow-hidden group h-full min-h-[140px]">
+    <div className="bg-slate-900 rounded-lg border border-slate-700 p-2 shadow-inner relative overflow-hidden group h-full min-h-[120px]">
         <div className="absolute top-1 right-2 text-[10px] text-slate-500 font-mono pointer-events-none select-none">
             ADSR VISUALIZER
         </div>
