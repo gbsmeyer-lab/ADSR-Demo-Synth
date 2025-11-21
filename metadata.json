@@ -1,0 +1,5 @@
+{
+  "name": "ADSR Synth Lab",
+  "description": "An interactive educational synthesizer for visualising ADSR envelopes, designed for media designers.",
+  "requestFramePermissions": []
+}

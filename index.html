@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ADSR Synth Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom scrollbar for a tech feel */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+      
+      /* Disco Animations */
+      @keyframes laser {
+        0% { transform: rotate(0deg) translateX(0); opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { transform: rotate(360deg) translateX(50px); opacity: 0.5; }
+      }
+      @keyframes strobe {
+        0%, 100% { background-color: rgba(0,0,0,0.1); }
+        50% { background-color: rgba(255,255,255,0.1); }
+      }
+      .disco-laser {
+        position: absolute;
+        height: 200vh;
+        width: 5px;
+        background: linear-gradient(to bottom, transparent, #ff00ff, cyan, #ffff00, transparent);
+        transform-origin: center;
+        animation: laser 2s infinite linear;
+        mix-blend-mode: screen;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+</head>
+  <body class="bg-slate-950 text-slate-200 overflow-hidden">
+    <div id="root"></div>
+  </body>
+</html>
